@@ -15,7 +15,7 @@ parser.add_argument('--all_use', type=str, default='no', metavar='N',
                     help='use all training data? in usps adaptation')
 parser.add_argument('--record_folder', type=str, default='record', metavar='N',
                     help='record folder')
-parser.add_argument('--batch-size', type=int, default=128, metavar='N',
+parser.add_argument('--batch-size', type=int, default=24, metavar='N',
                     help='input batch size for training (default: 64)')
 parser.add_argument('--checkpoint_dir', type=str, default='checkpoint', metavar='N',
                     help='source only or not')
@@ -46,6 +46,11 @@ parser.add_argument('--source1', type=str, default='real', metavar='N',
                     help='source1 dataset')
 parser.add_argument('--source2', type=str, default='painting', metavar='N',
                     help='source2 dataset')
+#parser.add_argument('--source3', type=str, default='clipart', metavar='N',
+ #                   help='source3 dataset')
+#parser.add_argument('--source4', type=str, default='infograph', metavar='N',
+#                    help='source4 dataset')
+#parser.add_argument('--source5', type=str, default='quickdraw', metavar='N',                                                                                                                    help='source5 dataset')
 parser.add_argument('--target', type=str, default='sketch', metavar='N', help='target dataset')
 parser.add_argument('--use_abs_diff', action='store_true', default=False,
                     help='use absolute difference value as a measurement')

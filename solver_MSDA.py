@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 #import mmd
-#import msda
+import msda
 from torch.autograd import Variable
 #from model.build_gen import *
 from datasets.dataset_read import dataset_read
@@ -19,7 +19,7 @@ from model.syn2gtrsb import *
 # Training settings
 class Solver(object):
     def __init__(self, args, batch_size=64,
-                 target='mnist', learning_rate=0.0002, interval=100, optimizer='adam'
+                 target='It doesnt matter', learning_rate=0.0002, interval=100, optimizer='adam'
                  , checkpoint_dir=None, save_epoch=10):
         self.batch_size = batch_size
         self.target = target
@@ -309,6 +309,7 @@ class Solver(object):
 
     def loss_all_domain(self, img_s1, img_s2,  img_t, label_s1, label_s2, ):
         feat_s1, feat_s2,  feat_t = self.feat_all_domain(img_s1, img_s2,  img_t)
+        #print(feat_s1.shape)
         output_s1_c1, output_s2_c1,  output_t_c1 = \
         	self.C1_all_domain(feat_s1, feat_s2,  feat_t)
         output_s1_c2, output_s2_c2,  output_t_c2 = \
@@ -341,48 +342,66 @@ class Solver(object):
             img_t = Variable(data['T'])
             img_s1 = Variable(data['S1'])
             img_s2 = Variable(data['S2'])
+            #print(img_s1) 
+                 
+
 
             label_s1 = Variable(data['S1_label'].long())
             label_s2 = Variable(data['S2_label'].long())
+            print(label_s1)
 
 
-            if img_s1.size()[0] < self.batch_size or img_s2.size()[0] < self.batch_size   or img_t.size()[0] < self.batch_size:
+            #print(label_s2)
+            #print(self.batch_size)
+            #print(img_s1.size()[0])
+            #print(img_s2.size()[0])
+            #print(img_t.size()[0])
+            if img_s1.size()[0] < self.batch_size or img_s2.size()[0] < self.batch_size or img_t.size()[0] < self.batch_size:
                 break            
-
+	    
+            #print("hello")
             self.reset_grad()
 
 
             loss_s1_c1, loss_s2_c1, loss_s1_c2, loss_s2_c2,  loss_msda = self.loss_all_domain(
-            	img_s1, img_s2,  img_t,  label_s1, label_s2, )
+            	img_s1, img_s2,  img_t,  label_s1, label_s2)
 
             loss_s_c1 = loss_s1_c1 + loss_s2_c1 #+ loss_s3_c1 + loss_s4_c1
             loss_s_c2 = loss_s1_c2 + loss_s2_c2 #+ loss_s3_c2 + loss_s4_c2
             loss = loss_s_c1 + loss_s_c2 + loss_msda
-
             loss.backward()
-            
             self.opt_g.step()
             self.opt_c1.step()
             self.opt_c2.step()
             self.reset_grad()
 
-            loss_s1_c1, loss_s2_c1, loss_s1_c2, loss_s2_c2, loss_msda =\
-            	self.loss_all_domain(img_s1, img_s2,  img_t, label_s1, label_s2)     
-
+            loss_s1_c1, loss_s2_c1, loss_s1_c2, loss_s2_c2, loss_msda =	self.loss_all_domain(img_s1, img_s2,  img_t, label_s1, label_s2)     
 
             feat_t = self.G(img_t)
             output_t1 = self.C1(feat_t)
             output_t2 = self.C2(feat_t)
+            #print(output_t1.shape)
+            #print(output_t1)
+            #print(output_t2.shape)
+            #print(output_t2)
+            output = (output_t1 + output_t2)/2
+            #print(output)
+            output, max_index = torch.max(output,1)
+            #print(output)            
+            #print(max_index)
+
             loss_s_c1 = loss_s1_c1 + loss_s2_c1 #+ loss_s3_c1 + loss_s4_c1
             loss_s_c2 = loss_s1_c2 + loss_s2_c2 #+ loss_s3_c2 + loss_s4_c2
 
             loss_s = loss_s1_c1 + loss_s2_c2 + loss_msda
             loss_dis = self.discrepancy(output_t1, output_t2)
             loss = loss_s - loss_dis
+            print("Final loss $",loss)
             loss.backward()
             self.opt_c1.step()
             self.opt_c2.step()
             self.reset_grad()
+
 
             for i in range(4):
                 feat_t = self.G(img_t)
@@ -394,14 +413,21 @@ class Solver(object):
                 self.reset_grad()
             if batch_idx > 500:
                 return batch_idx
+	    
 
+            print("_________________________________")
+            #print(loss_s2_c1.data)
+            #print(loss_s1_c1.data)
+            #print(loss_s_c1.data)
+            #print(loss_s_c2.data[0])
+            #print(loss_dis.data[0])
             if batch_idx % self.interval == 0:
                 print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss1: {:.6f}\t Loss2: {:.6f}\t  Discrepancy: {:.6f}'.format(
                     epoch, batch_idx, 100,
-                    100. * batch_idx / 70000, loss_s_c1.data[0], loss_s_c2.data[0], loss_dis.data[0]))
+                    100. * batch_idx / 70000, loss_s_c1.data, loss_s_c2.data, loss_dis.data))
                 if record_file:
                     record = open(record_file, 'a')
-                    record.write('%s %s %s\n' % (loss_dis.data[0], loss_s_c1.data[0], loss_s_c2.data[0]))
+                    record.write('%s %s %s\n' % (loss_dis.data, loss_s_c1.data, loss_s_c2.data))
                     record.close()
         return batch_idx
 
